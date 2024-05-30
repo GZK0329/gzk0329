@@ -3,57 +3,76 @@ package com.gzk.gss.timewheel;
 /**
  * @className: TimerTask
  * @description: 定时任务
- * @author: 70103
+ * @author: gzk0329
  * @date: 2024/5/28
- * @version: V8.2.300.0
+ * @version: V1.0
  **/
-import com.gzk.gss.config.TaskTypeEnum;
+
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 @Data
 @Slf4j
-public abstract class TimerTask<T extends TimerTaskContext, E extends TaskTypeEnum> implements Runnable {
+public class TimerTask {
 
-    private String desc;
+    protected long delayMs;
 
-    private Long delayMs;
+    protected Runnable runnable;
 
-    private T context;
+    protected String desc;
 
-    private E taskType;
+    protected TimerTaskEntry timerTaskEntry;
 
-    public TimerTask(T context) {
-        this.desc = context.getDesc();
-        this.delayMs = context.getDelayMs();
-        this.taskType = context.getType();
-        this.context = context;
+    public TimerTask() {
     }
 
     public TimerTaskEntry getTimerTaskEntry() {
-        return context.getTimerTaskEntry();
+        return timerTaskEntry;
     }
 
     public synchronized void setTimerTaskEntry(TimerTaskEntry entry) {
         // 如果这个TimerTask已经被一个已存在的TimerTaskEntry持有,先移除一个
-        if (context.getTimerTaskEntry() != null && context.getTimerTaskEntry() != entry) {
-            context.getTimerTaskEntry().remove();
+        if (timerTaskEntry != null && timerTaskEntry != entry) {
+            timerTaskEntry.remove();
         }
-        context.setTimerTaskEntry(entry);
+        timerTaskEntry = entry;
     }
 
-    /**
-     * When an object implementing interface <code>Runnable</code> is used
-     * to create a thread, starting the thread causes the object's
-     * <code>run</code> method to be called in that separately executing
-     * thread.
-     * <p>
-     * The general contract of the method <code>run</code> is that it may
-     * take any action whatsoever.
-     *
-     * @see Thread#run()
-     */
-    @Override
-    public abstract void run();
+    public static Builder newBuilder(){
+        return new Builder();
+    }
 
+    public static class Builder{
+        protected long delayMs = 10000L;
+
+        protected Runnable runnable = null;
+
+        protected String desc = "默认说明";
+
+        protected TimerTaskEntry timerTaskEntry = null;
+
+        public Builder delayMs(long delayMs){
+            this.delayMs = delayMs;
+            return this;
+        }
+
+        public Builder runnable(Runnable runnable){
+            this.runnable = runnable;
+            return this;
+        }
+
+        public Builder desc(String desc){
+            this.desc = desc;
+            return this;
+        }
+
+        public TimerTask build(){
+            TimerTask timerTask = new TimerTask();
+            timerTask.setDelayMs(delayMs);
+            timerTask.setRunnable(runnable);
+            timerTask.setDesc(desc);
+            timerTask.setTimerTaskEntry(null);
+            return timerTask;
+        }
+    }
 }

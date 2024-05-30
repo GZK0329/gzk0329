@@ -6,9 +6,9 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * @className: TimerTaskEntry
  * @description: 双向环形链表节点
- * @author: 70103
+ * @author: gzk0329
  * @date: 2024/5/28
- * @version: V8.2.300.0
+ * @version: V1.0
  **/
 @Data
 @Slf4j

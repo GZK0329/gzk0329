@@ -10,9 +10,9 @@ import java.util.concurrent.TimeUnit;
 /**
  * @className: TimerLauncher
  * @description: TODO
- * @author: 70103
+ * @author: gzk0329
  * @date: 2024/5/28
- * @version: V8.2.300.0
+ * @version: V1.0
  **/
 @Data
 @Slf4j
@@ -36,19 +36,10 @@ public class TimerLauncher implements Timer {
     /**
      * 轮询DelayQueue获取过期任务线程
      */
-    private ExecutorService bossThreadPool;
-
+    private ExecutorService delayQueueThreadPool;
 
     public TimerLauncher() {
-        this.timeWheel = new TimeWheel(1000, 60, System.currentTimeMillis(), delayQueue);
-        this.workerThreadPool = Executors.newFixedThreadPool(100);
-        this.bossThreadPool = Executors.newFixedThreadPool(5);
-        // 20ms推动一次时间轮运转
-        this.bossThreadPool.submit(() -> {
-            while (true) {
-                this.advanceClock(1000);
-            }
-        });
+        //constructor
     }
 
     public void addTimerTaskEntry(TimerTaskEntry entry) {
@@ -56,7 +47,7 @@ public class TimerLauncher implements Timer {
             // 任务已到期
             TimerTask timerTask = entry.getTimerTask();
             log.info("=====任务:{} 已到期,准备执行============", timerTask.getDesc());
-            workerThreadPool.submit(timerTask);
+            workerThreadPool.submit(timerTask.getRunnable());
             add(timerTask);
         }
     }
@@ -85,8 +76,8 @@ public class TimerLauncher implements Timer {
                 // 执行到期任务(包含降级)
                 bucket.clear(this::addTimerTaskEntry);
             }
-        } catch (InterruptedException e) {
-            log.error("advanceClock error");
+        } catch (Exception e) {
+            log.error("推进时间轮异常");
         }
     }
 
@@ -97,7 +88,7 @@ public class TimerLauncher implements Timer {
 
     @Override
     public void shutdown() {
-        this.bossThreadPool.shutdown();
+        this.delayQueueThreadPool.shutdown();
         this.workerThreadPool.shutdown();
         this.timeWheel = null;
     }
@@ -116,6 +107,66 @@ public class TimerLauncher implements Timer {
     @Override
     public void move() {
 
+    }
+
+    public static Builder newBuilder(){
+        return new Builder();
+    }
+
+    public static class Builder{
+        long tickMs = 1000L;
+        int wheelSize = 60;
+        long currentTime = System.currentTimeMillis();
+        int taskExecutorThreadNum = 100;
+        int delayQueueThreadNum = 1;
+        long defaultTimeout = 200L;
+
+        public Builder tickMs(long tickMs){
+            this.tickMs = tickMs;
+            return this;
+        }
+
+        public Builder wheelSize(int wheelSize){
+            this.wheelSize = wheelSize;
+            return this;
+        }
+
+        public Builder currentTime(long currentTime){
+            this.currentTime = currentTime;
+            return this;
+        }
+
+        public Builder taskExecutorThreadNum(int taskExecutorThreadNum){
+            this.taskExecutorThreadNum = taskExecutorThreadNum;
+            return this;
+        }
+
+        public Builder delayQueueThreadNum(int delayQueueThreadNum){
+            this.delayQueueThreadNum = delayQueueThreadNum;
+            return this;
+        }
+
+        public Builder defaultTimeout(long defaultTimeout){
+            this.defaultTimeout = defaultTimeout;
+            return this;
+        }
+
+
+        public TimerLauncher build(){
+
+            TimerLauncher timerLauncher = new TimerLauncher();
+
+            timerLauncher.timeWheel = new TimeWheel(tickMs, wheelSize, currentTime, timerLauncher.getDelayQueue());
+            timerLauncher.workerThreadPool = Executors.newFixedThreadPool(taskExecutorThreadNum);
+            timerLauncher.delayQueueThreadPool = Executors.newFixedThreadPool(delayQueueThreadNum);
+            // 20ms推动一次时间轮运转
+            timerLauncher.delayQueueThreadPool.submit(() -> {
+                while (true) {
+                    timerLauncher.advanceClock(defaultTimeout);
+                }
+            });
+            return timerLauncher;
+        }
     }
 
 }

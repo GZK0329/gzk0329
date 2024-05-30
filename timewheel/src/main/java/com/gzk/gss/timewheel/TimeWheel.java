@@ -8,9 +8,9 @@ import java.util.concurrent.DelayQueue;
 /**
  * @className: TimeWheel
  * @description:  时间轮
- * @author: 70103
+ * @author: gzk0329
  * @date: 2024/5/28
- * @version: V8.2.300.0
+ * @version: V1.0
  **/
 @Data
 @Slf4j
@@ -70,6 +70,8 @@ public class TimeWheel {
      */
     public boolean add(TimerTaskEntry entry) {
         long expiration = entry.getExpireMs();
+//        log.info("expiration {}, currentTime {}, tickMs {}, interval {}", expiration, currentTime, tickMs, interval);
+
         if (expiration < currentTime + tickMs) {
             // 已经到期
             return false;

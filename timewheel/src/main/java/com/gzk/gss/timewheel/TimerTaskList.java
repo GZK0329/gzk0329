@@ -11,9 +11,9 @@ import java.util.function.Consumer;
 /**
  * @className: TimerTaskList
  * @description: 双向环形链表
- * @author: 70103
+ * @author: gzk0329
  * @date: 2024/5/28
- * @version: V8.2.300.0
+ * @version: V1.0
  **/
 @Data
 @Slf4j
@@ -38,6 +38,7 @@ public class TimerTaskList implements Delayed {
 
     /**
      * 获取bucket过期时间
+     *
      * @return
      */
     public long getExpiration() {
@@ -56,6 +57,7 @@ public class TimerTaskList implements Delayed {
 
     /**
      * 给链表添加节点
+     *
      * @param entry 节点
      * @return
      */
