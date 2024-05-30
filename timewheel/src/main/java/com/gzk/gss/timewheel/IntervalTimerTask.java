@@ -4,10 +4,10 @@ import com.gzk.gss.config.TaskTypeEnum;
 
 /**
  * @className: IntervalTimerTask
- * @description: TODO
- * @author: 70103
+ * @description: 周期任务
+ * @author: gzk0329
  * @date: 2024/5/30
- * @version: V8.2.300.0
+ * @version: V1.0
  **/
 public class IntervalTimerTask extends TimerTask{
 
