@@ -1,4 +1,6 @@
 package com.gzk.gss.timewheel;
+
+import com.gzk.gss.annotation.Experimental;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -6,6 +8,9 @@ import java.util.concurrent.DelayQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 
 /**
  * @className: TimerLauncher
@@ -17,6 +22,10 @@ import java.util.concurrent.TimeUnit;
 @Data
 @Slf4j
 public class TimerLauncher implements Timer {
+
+    // 使用非公平锁
+    private final Lock lock = new ReentrantLock(true);
+
 
     /**
      * 底层时间轮
@@ -43,12 +52,20 @@ public class TimerLauncher implements Timer {
     }
 
     public void addTimerTaskEntry(TimerTaskEntry entry) {
-        if (!timeWheel.add(entry)) {
+        timeWheel.add(entry);
+    }
+
+    public void executeTimerTaskEntry(TimerTaskEntry entry){
+        if (timeWheel.execute(entry)) {
             // 任务已到期
             TimerTask timerTask = entry.getTimerTask();
             log.info("=====任务:{} 已到期,准备执行============", timerTask.getDesc());
             workerThreadPool.submit(timerTask.getRunnable());
-            add(timerTask);
+            TimerTaskEntryHolder.TASK_MAP.get(entry.getTimerTask().getTaskId()).remove();
+            TimerTaskEntryHolder.TASK_MAP.remove(entry.getTimerTask().getTaskId());
+
+            //加入下一个作业
+            postTaskProcess(timerTask);
         }
     }
 
@@ -73,8 +90,8 @@ public class TimerLauncher implements Timer {
             if (bucket != null) {
                 // 借助delayQueue 减少空推进，推进到期bucket的过期时间
                 timeWheel.advanceLock(bucket.getExpiration());
-                // 执行到期任务(包含降级)
-                bucket.clear(this::addTimerTaskEntry);
+                // 执行到期任务
+                bucket.clear(this::executeTimerTaskEntry);
             }
         } catch (Exception e) {
             log.error("推进时间轮异常");
@@ -83,6 +100,7 @@ public class TimerLauncher implements Timer {
 
     @Override
     public int size() {
+        //TODO
         return 10;
     }
 
@@ -97,23 +115,36 @@ public class TimerLauncher implements Timer {
      * 任务取消
      */
     @Override
-    public void cancel() {
-
+    public void cancel(long taskId) {
+        TimerTaskEntryHolder.TASK_MAP.get(taskId).remove();
     }
 
     /**
      * 任务插队，将任务移动到另一个槽
      */
     @Override
+    @Experimental
     public void move() {
 
     }
 
-    public static Builder newBuilder(){
+    public void postTaskProcess(TimerTask timerTask) {
+        switch (timerTask.getType()) {
+            case INTERVAL:
+                add(timerTask);
+                break;
+            case ONCE:
+                break;
+            default:
+        }
+
+    }
+
+    public static Builder newBuilder() {
         return new Builder();
     }
 
-    public static class Builder{
+    public static class Builder {
         long tickMs = 1000L;
         int wheelSize = 60;
         long currentTime = System.currentTimeMillis();
@@ -121,38 +152,38 @@ public class TimerLauncher implements Timer {
         int delayQueueThreadNum = 1;
         long defaultTimeout = 200L;
 
-        public Builder tickMs(long tickMs){
+        public Builder tickMs(long tickMs) {
             this.tickMs = tickMs;
             return this;
         }
 
-        public Builder wheelSize(int wheelSize){
+        public Builder wheelSize(int wheelSize) {
             this.wheelSize = wheelSize;
             return this;
         }
 
-        public Builder currentTime(long currentTime){
+        public Builder currentTime(long currentTime) {
             this.currentTime = currentTime;
             return this;
         }
 
-        public Builder taskExecutorThreadNum(int taskExecutorThreadNum){
+        public Builder taskExecutorThreadNum(int taskExecutorThreadNum) {
             this.taskExecutorThreadNum = taskExecutorThreadNum;
             return this;
         }
 
-        public Builder delayQueueThreadNum(int delayQueueThreadNum){
+        public Builder delayQueueThreadNum(int delayQueueThreadNum) {
             this.delayQueueThreadNum = delayQueueThreadNum;
             return this;
         }
 
-        public Builder defaultTimeout(long defaultTimeout){
+        public Builder defaultTimeout(long defaultTimeout) {
             this.defaultTimeout = defaultTimeout;
             return this;
         }
 
 
-        public TimerLauncher build(){
+        public TimerLauncher build() {
 
             TimerLauncher timerLauncher = new TimerLauncher();
 

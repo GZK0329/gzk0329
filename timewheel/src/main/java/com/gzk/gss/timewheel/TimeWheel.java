@@ -2,12 +2,11 @@ package com.gzk.gss.timewheel;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-
 import java.util.concurrent.DelayQueue;
 
 /**
  * @className: TimeWheel
- * @description:  时间轮
+ * @description: 时间轮
  * @author: gzk0329
  * @date: 2024/5/28
  * @version: V1.0
@@ -65,21 +64,19 @@ public class TimeWheel {
 
     /**
      * 添加任务
+     *
      * @param entry
      * @return
      */
     public boolean add(TimerTaskEntry entry) {
         long expiration = entry.getExpireMs();
-//        log.info("expiration {}, currentTime {}, tickMs {}, interval {}", expiration, currentTime, tickMs, interval);
 
-        if (expiration < currentTime + tickMs) {
-            // 已经到期
-            return false;
-        } else if (expiration < currentTime + interval) {
+        if (expiration < currentTime + interval) {
             // 扔进当前时间轮的某个槽里
             long virtualId = (expiration / tickMs);
             int index = (int) (virtualId % wheelSize);
             TimerTaskList bucket = buckets[index];
+            TimerTaskEntryHolder.TASK_MAP.put(entry.getTimerTask().getTaskId(), entry);
             bucket.addTask(entry);
             // 设置bucket过期时间
             if (bucket.setExpiration(virtualId * tickMs)) {
@@ -95,8 +92,21 @@ public class TimeWheel {
         return false;
     }
 
+    public boolean execute(TimerTaskEntry entry) {
+        long expiration = entry.getExpireMs();
+        // 已经到期
+        if(expiration < currentTime + tickMs){
+            return true;
+        }else{
+            // 扔到上一轮
+            TimeWheel timeWheel = getOverflowWheel();
+            return timeWheel.execute(entry);
+        }
+    }
+
     /**
      * 获取上层时间轮
+     *
      * @return
      */
     private TimeWheel getOverflowWheel() {
@@ -116,6 +126,7 @@ public class TimeWheel {
      * @param timestamp 要推进的时间
      */
     public void advanceLock(long timestamp) {
+
         if (timestamp > currentTime + tickMs) {
             currentTime = timestamp - (timestamp % tickMs);
             if (overflowWheel != null) {

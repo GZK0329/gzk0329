@@ -5,9 +5,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import java.util.TimeZone;
-import java.util.concurrent.DelayQueue;
 
-@SpringBootApplication()
+@SpringBootApplication( scanBasePackages = {
+        "com.gzk.gss"
+})
 @Slf4j
 public class TimeWheelStarter {
 
@@ -24,10 +25,15 @@ public class TimeWheelStarter {
                 .defaultTimeout(200L)
                 .build();
 
-        IntervalTimerTask intervalTimerTask = (IntervalTimerTask) IntervalTimerTask.newBuilder().delayMs(10000L).runnable(() ->log.info("这是周期任务")).build();
-        TimerTask timerTask = TimerTask.newBuilder().delayMs(1000L).runnable(() -> log.info("这是普通timerTask")).build();
-        timerLauncher.add(intervalTimerTask);
-        timerLauncher.add(timerTask);
+        IntervalTimerTask intervalTimerTask1 = (IntervalTimerTask) IntervalTimerTask.newBuilder().taskId(111L).delayMs(10000L).runnable(() ->log.info("这是周期任务11111")).build();
+        timerLauncher.add(intervalTimerTask1);
+
+        IntervalTimerTask intervalTimerTask2 = (IntervalTimerTask) IntervalTimerTask.newBuilder().taskId(222L).delayMs(10000L).runnable(() ->log.info("这是周期任务22222")).build();
+        timerLauncher.add(intervalTimerTask2);
+
+        IntervalTimerTask intervalTimerTask3 = (IntervalTimerTask) IntervalTimerTask.newBuilder().taskId(333L).delayMs(10000L).runnable(() ->log.info("这是周期任务33333")).build();
+        timerLauncher.add(intervalTimerTask3);
+
         new SpringApplicationBuilder(TimeWheelStarter.class).run(args);
     }
 

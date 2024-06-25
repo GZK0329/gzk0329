@@ -8,12 +8,13 @@ package com.gzk.gss.timewheel;
  * @version: V1.0
  **/
 
+import com.gzk.gss.config.TaskTypeEnum;
 import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
 
 @Data
-@Slf4j
-public class TimerTask {
+public abstract class TimerTask {
+
+    protected long taskId;
 
     protected long delayMs;
 
@@ -22,9 +23,6 @@ public class TimerTask {
     protected String desc;
 
     protected TimerTaskEntry timerTaskEntry;
-
-    public TimerTask() {
-    }
 
     public TimerTaskEntry getTimerTaskEntry() {
         return timerTaskEntry;
@@ -38,41 +36,5 @@ public class TimerTask {
         timerTaskEntry = entry;
     }
 
-    public static Builder newBuilder(){
-        return new Builder();
-    }
-
-    public static class Builder{
-        protected long delayMs = 10000L;
-
-        protected Runnable runnable = null;
-
-        protected String desc = "默认说明";
-
-        protected TimerTaskEntry timerTaskEntry = null;
-
-        public Builder delayMs(long delayMs){
-            this.delayMs = delayMs;
-            return this;
-        }
-
-        public Builder runnable(Runnable runnable){
-            this.runnable = runnable;
-            return this;
-        }
-
-        public Builder desc(String desc){
-            this.desc = desc;
-            return this;
-        }
-
-        public TimerTask build(){
-            TimerTask timerTask = new TimerTask();
-            timerTask.setDelayMs(delayMs);
-            timerTask.setRunnable(runnable);
-            timerTask.setDesc(desc);
-            timerTask.setTimerTaskEntry(null);
-            return timerTask;
-        }
-    }
+    abstract TaskTypeEnum getType();
 }

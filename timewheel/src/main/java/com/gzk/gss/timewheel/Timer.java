@@ -31,7 +31,7 @@ public interface Timer {
     /**
      * 任务取消
      */
-    void cancel();
+    void cancel(long taskId);
 
     /**
      * 任务插队，将任务移动到另一个槽
